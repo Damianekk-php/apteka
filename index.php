@@ -1,6 +1,13 @@
 <?php
 include "config/db.php";
 include "session.php";
+// cart item count
+$cartCount = 0;
+if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
+    foreach ($_SESSION['cart'] as $cartItem) {
+        $cartCount += (int)($cartItem['qty'] ?? 0);
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -19,8 +26,12 @@ include "session.php";
     <h1>Apteka Internetowa</h1>
     </div>
 
+    <div class="header-actions">
+        <a href="cart.php" class="cart-link">Koszyk (<?= $cartCount ?>)</a>
+    </div>
+
     <?php if(isset($_SESSION['user'])): ?>
-        <p>Zalogowany: <?= $_SESSION['user']['name'] ?> |
+        <p>Zalogowany: <?= htmlspecialchars($_SESSION['user']['name']) ?> |
         <a href="auth/logout.php">Wyloguj</a>
         <?php if (isset($_SESSION['user']) && $_SESSION['user']['role'] === 'admin'): ?>
             <a href="admin/products.php" class="admin-btn">Panel admina</a>
@@ -32,7 +43,7 @@ include "session.php";
 
 </header>
 
-<main>
+<main id="maincontent">
     <section class="shop-hero">
         <div class="shop-hero-copy">
             <p class="shop-kicker">Sklep online</p>
@@ -111,8 +122,22 @@ include "session.php";
                 </div>
 
                 <div class="product-actions">
-                    <a href="#" class="product-btn product-btn-secondary">Szczegóły</a>
-                    <a href="auth/login.php" class="product-btn product-btn-primary">Kup teraz</a>
+                    <a href="product.php?id=<?= (int)$row['id'] ?>" class="product-btn product-btn-secondary">Szczegóły</a>
+
+                    <form method="post" action="cart.php" class="inline-form" style="display:inline-block;margin:0 8px;">
+                        <input type="hidden" name="action" value="add">
+                        <input type="hidden" name="id" value="<?= (int)$row['id'] ?>">
+                        <input type="hidden" name="qty" value="1">
+                        <button type="submit" class="product-btn">Dodaj do koszyka</button>
+                    </form>
+
+                    <form method="post" action="cart.php" class="inline-form" style="display:inline-block;">
+                        <input type="hidden" name="action" value="add">
+                        <input type="hidden" name="id" value="<?= (int)$row['id'] ?>">
+                        <input type="hidden" name="qty" value="1">
+                        <input type="hidden" name="redirect" value="checkout">
+                        <button type="submit" class="product-btn product-btn-primary">Kup teraz</button>
+                    </form>
                 </div>
             </div>
         </article>
