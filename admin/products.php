@@ -50,6 +50,20 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         exit;
     }
 
+    if ($form_type === 'product_toggle') {
+        $product_id = (int)($_POST['product_id'] ?? 0);
+        $set_active = isset($_POST['set_active']) ? 1 : 0;
+        if ($product_id > 0) {
+            $stmt = $conn->prepare("UPDATE products SET is_active = ? WHERE id = ?");
+            $stmt->bind_param("ii", $set_active, $product_id);
+            $stmt->execute();
+            header("Location: products.php");
+            exit;
+        }
+        header("Location: products.php?product_error=1");
+        exit;
+    }
+
     if ($form_type === 'discount_delete') {
         $discount_id = (int)($_POST['discount_id'] ?? 0);
         if ($discount_id > 0) {
@@ -128,6 +142,7 @@ $discounts = $conn->query("SELECT * FROM discounts ORDER BY id DESC");
             </div>
             <div class="admin-actions">
                 <a href="../index.php" class="admin-btn admin-btn-ghost">Strona główna</a>
+                <a href="stats.php" class="admin-btn admin-btn-ghost">Statystyki</a>
                 <button type="button" class="admin-btn admin-btn-primary" id="openAddProduct">Dodaj produkt</button>
                 <button type="button" class="admin-btn admin-btn-primary" id="openAddDiscount">Dodaj kod rabatowy</button>
             </div>
@@ -151,7 +166,8 @@ $discounts = $conn->query("SELECT * FROM discounts ORDER BY id DESC");
 
         <section class="admin-list">
             <?php while ($p = $products->fetch_assoc()): ?>
-                <article class="admin-product-card">
+                <?php $isInactive = ((int)$p['is_active'] !== 1); ?>
+                <article class="admin-product-card <?= $isInactive ? 'is-inactive' : '' ?>">
                     <div class="admin-product-media">
                         <?php if (!empty($p['image']) && file_exists('../uploads/' . $p['image'])): ?>
                             <img src="../uploads/<?= htmlspecialchars($p['image']) ?>" alt="<?= htmlspecialchars($p['name']) ?>" class="admin-product-img">
@@ -175,6 +191,20 @@ $discounts = $conn->query("SELECT * FROM discounts ORDER BY id DESC");
                         <div class="admin-product-actions">
                             <a href="edit_product.php?id=<?= (int)$p['id'] ?>" class="admin-btn admin-btn-small">Edytuj</a>
                             <a href="delete_product.php?id=<?= (int)$p['id'] ?>" class="admin-btn admin-btn-small admin-btn-danger" onclick="return confirm('Usunąć produkt?')">Usuń</a>
+                            <?php if ($isInactive): ?>
+                                <form method="post" action="products.php" style="display:inline-block; margin:0;">
+                                    <input type="hidden" name="form_type" value="product_toggle">
+                                    <input type="hidden" name="product_id" value="<?= (int)$p['id'] ?>">
+                                    <input type="hidden" name="set_active" value="1">
+                                    <button type="submit" class="admin-btn admin-btn-small admin-btn-ghost">Aktywuj</button>
+                                </form>
+                            <?php else: ?>
+                                <form method="post" action="products.php" style="display:inline-block; margin:0;">
+                                    <input type="hidden" name="form_type" value="product_toggle">
+                                    <input type="hidden" name="product_id" value="<?= (int)$p['id'] ?>">
+                                    <button type="submit" class="admin-btn admin-btn-small admin-btn-ghost" onclick="return confirm('Dezaktywować produkt?')">Dezaktywuj</button>
+                                </form>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </article>
